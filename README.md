@@ -210,7 +210,3 @@ curl -X POST http://localhost:5000/api/auth/login \
 # Get Items (Authenticated)
 curl -X GET http://localhost:5000/api/items \
    -H "Authorization: Bearer <jwt_token>"
-
-📜 License
-
-This project is licensed under the MIT License.
