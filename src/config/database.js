@@ -1,15 +1,37 @@
-// config/database.js
 const mongoose = require('mongoose');
+require('dotenv').config();
 
-const uri = 'mongodb+srv://ijan80348:shinryuken80348@cluster0.jtbtbsl.mongodb.net/'; // your provided URI
+const connectDB = async () => {
+    try {
+        const mongoURI = process.env.MONGO_URI || 'mongodb+srv://ijan80348:shinryuken80348@cluster0.jtbtbsl.mongodb.net/productmanagement';
+        
+        const conn = await mongoose.connect(mongoURI, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
 
-async function connectDB() {
-  // options to avoid deprecation warnings
-  await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
-  console.log('MongoDB connected');
-}
+        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        
+        // Handle connection events
+        mongoose.connection.on('error', (err) => {
+            console.error('MongoDB connection error:', err);
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.log('MongoDB disconnected');
+        });
+
+        // Graceful shutdown
+        process.on('SIGINT', async () => {
+            await mongoose.connection.close();
+            console.log('MongoDB connection closed through app termination');
+            process.exit(0);
+        });
+
+    } catch (error) {
+        console.error('Database connection error:', error);
+        process.exit(1);
+    }
+};
 
 module.exports = { connectDB };

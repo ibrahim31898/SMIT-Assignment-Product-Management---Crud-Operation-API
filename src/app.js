@@ -1,246 +1,468 @@
-// app.js
-require('dotenv').config();
 const express = require('express');
-const cookieParser = require('cookie-parser');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const Joi = require('joi');
-
 const { connectDB } = require('./config/database');
 const { User } = require('./model/user');
 const { Product } = require('./model/product');
-const { Log } = require('./model/log');
+const { ActivityLog } = require('./model/activityLog');
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
+const validator = require('validator');
+const jwt = require('jsonwebtoken');
 const { userAuth } = require('./middleware/user');
+const Joi = require('joi');
+require('dotenv').config();
 
 const app = express();
+
+// Middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(express.static('public'));
 
-// Config / secrets
-const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'Ali@4321';
-const JWT_EXPIRES = '1d';
-
-// --- Validation Schemas ---
+// Validation Schemas
 const signupSchema = Joi.object({
-  firstName: Joi.string().min(2).max(50).required(),
-  lastName: Joi.string().allow('').max(50),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-  role: Joi.string().valid('user', 'admin').default('user'),
+    firstName: Joi.string().min(3).max(30).required(),
+    lastName: Joi.string().min(3).max(30).required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(8).required(),
+    role: Joi.string().valid('user', 'admin').default('user')
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().required()
 });
 
 const productSchema = Joi.object({
-  name: Joi.string().min(1).required(),
-  description: Joi.string().allow(''),
-  price: Joi.number().min(0).default(0),
-  category: Joi.string().default('general'),
+    name: Joi.string().min(3).max(100).required(),
+    description: Joi.string().min(10).max(500).required(),
+    price: Joi.number().positive().required(),
+    category: Joi.string().min(3).max(50).required()
 });
 
-// --- Utility: create log entry ---
-async function createLog({ userId, action, resourceType, resourceId, meta = {} }) {
-  try {
-    const log = new Log({ userId, action, resourceType, resourceId, meta });
-    await log.save();
-  } catch (err) {
-    console.error('Failed to create log', err);
-  }
-}
+// Helper function to log user activity
+const logActivity = async (userId, action, details = '') => {
+    try {
+        const log = new ActivityLog({
+            userId,
+            action,
+            details,
+            timestamp: new Date()
+        });
+        await log.save();
+    } catch (error) {
+        console.error('Error logging activity:', error);
+    }
+};
 
-// --- Auth Routes ---
+// Authentication APIs
 app.post('/api/auth/signup', async (req, res) => {
-  try {
-    const { error, value } = signupSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    try {
+        // Validate input
+        const { error, value } = signupSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                error: error.details[0].message
+            });
+        }
 
-    const { firstName, lastName, email, password, role } = value;
+        const { firstName, lastName, email, password, role } = value;
 
-    // check existing
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ message: 'User with that email already exists' });
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'User with this email already exists'
+            });
+        }
 
-    const hashed = await bcrypt.hash(password, 10);
-    const user = new User({ firstName, lastName, email, password: hashed, role });
-    await user.save();
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 12);
 
-    await createLog({ userId: user._id, action: 'SIGNUP', resourceType: 'User', resourceId: user._id });
+        // Create user
+        const user = new User({
+            firstName,
+            lastName,
+            email,
+            password: hashedPassword,
+            role: role || 'user'
+        });
 
-    res.status(201).json({ message: 'User signup successfully', data: { id: user._id, email: user.email, firstName: user.firstName, role: user.role } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Signup error', error: err.message });
-  }
+        await user.save();
+
+        // Log activity
+        await logActivity(user._id, 'USER_SIGNUP', `New user registered: ${email}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'User registered successfully',
+            data: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
 app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { error, value } = loginSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    try {
+        // Validate input
+        const { error, value } = loginSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                error: error.details[0].message
+            });
+        }
 
-    const { email, password } = value;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+        const { email, password } = value;
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: 'Invalid credentials' });
+        // Find user
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
+        }
 
-    const token = jwt.sign({ id: user._id, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+        // Compare password
+        const isValidPassword = await bcrypt.compare(password, user.password);
+        if (!isValidPassword) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
+        }
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      sameSite: 'lax',
-      // secure: true in production with https
-      maxAge: 24 * 60 * 60 * 1000,
-    });
+        // Generate JWT
+        const token = jwt.sign(
+            { id: user._id, email: user.email, role: user.role },
+            process.env.JWT_SECRET || 'your-secret-key',
+            { expiresIn: '24h' }
+        );
 
-    await createLog({ userId: user._id, action: 'LOGIN', resourceType: 'User', resourceId: user._id });
+        // Set cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        });
 
-    const userSafe = { id: user._id, firstName: user.firstName, lastName: user.lastName, email: user.email, role: user.role };
-    res.json({ message: 'Login successful', user: userSafe });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Login error', error: err.message });
-  }
+        // Log activity
+        await logActivity(user._id, 'USER_LOGIN', `User logged in: ${email}`);
+
+        res.json({
+            success: true,
+            message: 'Login successful',
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role
+            }
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
-app.post('/api/auth/logout', userAuth, async (req, res) => {
-  try {
-    res.cookie('token', '', { httpOnly: true, expires: new Date(0) });
-    await createLog({ userId: req.user._id, action: 'LOGOUT', resourceType: 'User', resourceId: req.user._id });
-    res.json({ message: 'Logout successful' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Logout error', error: err.message });
-  }
+app.post('/api/auth/logout', async (req, res) => {
+    try {
+        res.clearCookie('token');
+        res.json({
+            success: true,
+            message: 'Logout successful'
+        });
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
 });
 
-// --- Profile ---
+// Profile API
 app.get('/api/users/profile', userAuth, async (req, res) => {
-  try {
-    // userAuth attached user without password
-    await createLog({ userId: req.user._id, action: 'GET_PROFILE', resourceType: 'User', resourceId: req.user._id });
-    res.json({ user: req.user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Profile error', error: err.message });
-  }
+    try {
+        const user = req.user;
+        
+        // Log activity
+        await logActivity(user._id, 'PROFILE_ACCESS', 'User accessed their profile');
+
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                role: user.role,
+                age: user.age,
+                gender: user.gender,
+                about: user.about,
+                skills: user.skills,
+                photoURL: user.photoURL,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
+        });
+
+    } catch (error) {
+        console.error('Profile error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
-// --- Products ---
-// Create
+// Product APIs
 app.post('/api/products', userAuth, async (req, res) => {
-  try {
-    const { error, value } = productSchema.validate(req.body);
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    try {
+        // Validate input
+        const { error, value } = productSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                error: error.details[0].message
+            });
+        }
 
-    const { name, description, price, category } = value;
-    const product = new Product({
-      name,
-      description,
-      price,
-      category,
-      createdBy: req.user._id,
-    });
-    await product.save();
+        const { name, description, price, category } = value;
+        const userId = req.user._id;
 
-    await createLog({ userId: req.user._id, action: 'CREATE_PRODUCT', resourceType: 'Product', resourceId: product._id, meta: { name } });
+        // Create product
+        const product = new Product({
+            name,
+            description,
+            price,
+            category,
+            createdBy: userId,
+            createdAt: new Date()
+        });
 
-    res.status(201).json({ message: 'Product created', product });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Create product error', error: err.message });
-  }
+        await product.save();
+
+        // Log activity
+        await logActivity(userId, 'PRODUCT_CREATE', `Created product: ${name}`);
+
+        res.status(201).json({
+            success: true,
+            message: 'Product created successfully',
+            product: {
+                id: product._id,
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                category: product.category,
+                createdBy: product.createdBy,
+                createdAt: product.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error('Create product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
-// Read all
 app.get('/api/products', userAuth, async (req, res) => {
-  try {
-    const products = await Product.find().populate('createdBy', 'firstName lastName email');
-    await createLog({ userId: req.user._id, action: 'GET_PRODUCTS', resourceType: 'Product', meta: { count: products.length } });
-    res.json({ products });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Get products error', error: err.message });
-  }
+    try {
+        const userId = req.user._id;
+
+        // Fetch all products
+        const products = await Product.find()
+            .populate('createdBy', 'firstName lastName email')
+            .sort({ createdAt: -1 });
+
+        // Log activity
+        await logActivity(userId, 'PRODUCTS_ACCESS', 'User accessed products list');
+
+        res.json({
+            success: true,
+            count: products.length,
+            products: products
+        });
+
+    } catch (error) {
+        console.error('Get products error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
 });
 
-// Update
 app.put('/api/products/:id', userAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { error, value } = productSchema.validate(req.body, { presence: 'optional' });
-    if (error) return res.status(400).json({ message: error.details[0].message });
+    try {
+        const productId = req.params.id;
+        const userId = req.user._id;
 
-    const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+        // Find product
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
 
-    if (product.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Forbidden: not the product owner' });
+        // Check ownership
+        if (product.createdBy.toString() !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only update your own products'
+            });
+        }
+
+        // Validate input
+        const { error, value } = productSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                error: error.details[0].message
+            });
+        }
+
+        // Update product
+        const { name, description, price, category } = value;
+        product.name = name;
+        product.description = description;
+        product.price = price;
+        product.category = category;
+        product.updatedAt = new Date();
+        product.updatedBy = userId;
+
+        await product.save();
+
+        // Log activity
+        await logActivity(userId, 'PRODUCT_UPDATE', `Updated product: ${name}`);
+
+        res.json({
+            success: true,
+            message: 'Product updated successfully',
+            product: product
+        });
+
+    } catch (error) {
+        console.error('Update product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
     }
-
-    const changes = {};
-    ['name', 'description', 'price', 'category'].forEach((k) => {
-      if (value[k] !== undefined && value[k] !== product[k]) {
-        changes[k] = { from: product[k], to: value[k] };
-        product[k] = value[k];
-      }
-    });
-
-    if (Object.keys(changes).length > 0) {
-      product.updateHistory.push({ userId: req.user._id, changes, updatedAt: new Date() });
-    }
-
-    await product.save();
-
-    await createLog({ userId: req.user._id, action: 'UPDATE_PRODUCT', resourceType: 'Product', resourceId: product._id, meta: { changes } });
-
-    res.json({ message: 'Product updated', product });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Update product error', error: err.message });
-  }
 });
 
-// Delete
 app.delete('/api/products/:id', userAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    try {
+        const productId = req.params.id;
+        const userId = req.user._id;
 
-    if (product.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Forbidden: not the product owner' });
+        // Find product
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        // Check ownership
+        if (product.createdBy.toString() !== userId.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. You can only delete your own products'
+            });
+        }
+
+        // Delete product
+        await Product.findByIdAndDelete(productId);
+
+        // Log activity
+        await logActivity(userId, 'PRODUCT_DELETE', `Deleted product: ${product.name}`);
+
+        res.json({
+            success: true,
+            message: 'Product deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('Delete product error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
     }
-
-    await product.remove();
-
-    await createLog({ userId: req.user._id, action: 'DELETE_PRODUCT', resourceType: 'Product', resourceId: product._id, meta: { name: product.name } });
-
-    res.json({ message: 'Product deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Delete product error', error: err.message });
-  }
 });
 
-// --- Global 404 ---
-app.use((req, res) => {
-  res.status(404).json({ message: 'Not found' });
+// Serve frontend
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
 });
 
-// --- Boot ---
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({
+        success: false,
+        message: 'Something went wrong!',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
-  })
-  .catch((err) => {
-    console.error('Database connection failed', err);
-    process.exit(1);
-  });
+});
+
+// 404 handler
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'Route not found'
+    });
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+
+connectDB()
+    .then(() => {
+        console.log('✅ Database connected successfully!');
+        app.listen(PORT, () => {
+            console.log(`🚀 Server is running on port ${PORT}`);
+            console.log(`📱 Frontend: http://localhost:${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('❌ Database connection failed:', err);
+        process.exit(1);
+    });

@@ -1,91 +1,628 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Product Manager - Demo</title>
-  <link rel="stylesheet" href="style.css" />
-  <script type="module" src="app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="container">
-    <h1>Product Manager - Crud Operation API</h1>
+    <div class="container">
+        <!-- Navigation -->
+        <nav class="navbar" id="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-box"></i>
+                <span>ProductManager</span>
+            </div>
+            <div class="nav-links" id="navLinks">
+                <a href="#" onclick="showSection('dashboard')" class="nav-link active" id="dashboardLink">
+                    <i class="fas fa-home"></i> Dashboard
+                </a>
+                <a href="#" onclick="showSection('products')" class="nav-link" id="productsLink">
+                    <i class="fas fa-box-open"></i> Products
+                </a>
+                <a href="#" onclick="showSection('profile')" class="nav-link" id="profileLink">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+                <a href="#" onclick="logout()" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </nav>
 
-    <section>
-      <h2>Sign Up</h2>
-      <form id="signupForm">
-        <input name="firstName" placeholder="First name" required />
-        <input name="lastName" placeholder="Last name" />
-        <input name="email" placeholder="Email" type="email" required />
-        <input name="password" placeholder="Password" type="password" required />
-        <button type="submit">Sign Up</button>
-      </form>
-    </section>
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1><i class="fas fa-box"></i> Product Manager</h1>
+                    <p>Manage your products efficiently</p>
+                </div>
 
-    <section>
-      <h2>Login</h2>
-      <form id="loginForm">
-        <input name="email" placeholder="Email" type="email" required />
-        <input name="password" placeholder="Password" type="password" required />
-        <button type="submit">Login</button>
-      </form>
-    </section>
+                <!-- Login Form -->
+                <div id="loginForm" class="auth-form">
+                    <h2>Welcome Back</h2>
+                    <form onsubmit="login(event)">
+                        <div class="form-group">
+                            <label for="loginEmail">Email</label>
+                            <input type="email" id="loginEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="loginPassword">Password</label>
+                            <input type="password" id="loginPassword" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        Don't have an account? 
+                        <a href="#" onclick="switchToSignup()">Sign up here</a>
+                    </p>
+                </div>
 
-    <section>
-      <h2>Create Product</h2>
-      <form id="productForm">
-        <input name="name" placeholder="Product name" required />
-        <input name="price" placeholder="Price" type="number" />
-        <input name="category" placeholder="Category" />
-        <input name="description" placeholder="Description" />
-        <button type="submit">Create</button>
-      </form>
-    </section>
+                <!-- Signup Form -->
+                <div id="signupForm" class="auth-form" style="display: none;">
+                    <h2>Create Account</h2>
+                    <form onsubmit="signup(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="signupFirstName">First Name</label>
+                                <input type="text" id="signupFirstName" required minlength="3">
+                            </div>
+                            <div class="form-group">
+                                <label for="signupLastName">Last Name</label>
+                                <input type="text" id="signupLastName" required minlength="3">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="signupEmail">Email</label>
+                            <input type="email" id="signupEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="signupPassword">Password</label>
+                            <input type="password" id="signupPassword" required minlength="8">
+                            <small>Must contain 8+ characters with uppercase, lowercase, number & symbol</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Sign Up
+                        </button>
+                    </form>
+                    <p class="auth-switch">
+                        Already have an account? 
+                        <a href="#" onclick="switchToLogin()">Login here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
 
-    <section>
-      <h2>Products</h2>
-      <button id="fetchProducts">Fetch Products</button>
-      <ul id="productsList"></ul>
-    </section>
-  </div>
+        <!-- Main App Section -->
+        <div id="appSection" class="app-container" style="display: none;">
+            
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-home"></i> Dashboard</h2>
+                    <p>Welcome back! Here's your product overview.</p>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalProducts">0</h3>
+                            <p>Total Products</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="recentProducts">0</h3>
+                            <p>This Month</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3 id="totalValue">$0</h3>
+                            <p>Total Value</p>
+                        </div>
+                    </div>
+                </div>
 
-<script>
-const api = (path, opts = {}) => fetch(path, { credentials: 'include', headers: { 'Content-Type': 'application/json' }, ...opts });
+                <div class="recent-activity">
+                    <h3>Recent Products</h3>
+                    <div id="recentProductsList" class="product-list">
+                        <!-- Recent products will be loaded here -->
+                    </div>
+                </div>
+            </div>
 
-document.getElementById('signupForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form = Object.fromEntries(new FormData(e.target).entries());
-  const res = await api('/api/auth/signup', { method: 'POST', body: JSON.stringify(form) });
-  alert((await res.json()).message || res.statusText);
-});
+            <!-- Products Section -->
+            <div id="products" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-box-open"></i> Products</h2>
+                    <button class="btn btn-primary" onclick="showAddProductForm()">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </div>
 
-document.getElementById('loginForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form = Object.fromEntries(new FormData(e.target).entries());
-  const res = await api('/api/auth/login', { method: 'POST', body: JSON.stringify(form) });
-  const json = await res.json();
-  alert(json.message || res.statusText);
-});
+                <!-- Add/Edit Product Form -->
+                <div id="productForm" class="form-container" style="display: none;">
+                    <div class="form-card">
+                        <h3 id="formTitle">Add New Product</h3>
+                        <form onsubmit="saveProduct(event)">
+                            <input type="hidden" id="productId">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="productName">Product Name</label>
+                                    <input type="text" id="productName" required minlength="3">
+                                </div>
+                                <div class="form-group">
+                                    <label for="productCategory">Category</label>
+                                    <input type="text" id="productCategory" required minlength="3">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="productDescription">Description</label>
+                                <textarea id="productDescription" required minlength="10"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="productPrice">Price ($)</label>
+                                <input type="number" id="productPrice" required min="0" step="0.01">
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="hideProductForm()">Cancel</button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Product
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
 
-document.getElementById('productForm').addEventListener('submit', async e => {
-  e.preventDefault();
-  const form = Object.fromEntries(new FormData(e.target).entries());
-  if (form.price) form.price = Number(form.price);
-  const res = await api('/api/products', { method: 'POST', body: JSON.stringify(form) });
-  const json = await res.json();
-  alert(json.message || res.statusText);
-});
+                <!-- Products List -->
+                <div id="productsList" class="products-grid">
+                    <!-- Products will be loaded here -->
+                </div>
+            </div>
 
-document.getElementById('fetchProducts').addEventListener('click', async () => {
-  const res = await api('/api/products', { method: 'GET' });
-  const json = await res.json();
-  const ul = document.getElementById('productsList');
-  ul.innerHTML = '';
-  (json.products || []).forEach(p => {
-    const li = document.createElement('li');
-    li.textContent = `${p.name} — ${p.price} — by ${p.createdBy?.firstName || 'unknown'}`;
-    ul.appendChild(li);
-  });
-});
-</script>
+            <!-- Profile Section -->
+            <div id="profile" class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-user"></i> Profile</h2>
+                </div>
+                
+                <div class="profile-container">
+                    <div class="profile-card">
+                        <div class="profile-avatar">
+                            <img id="profileImage" src="" alt="Profile">
+                        </div>
+                        <div class="profile-info">
+                            <h3 id="profileName">Loading...</h3>
+                            <p id="profileEmail">Loading...</p>
+                            <p id="profileRole">Loading...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-details">
+                        <h4>Profile Details</h4>
+                        <div class="detail-item">
+                            <strong>Member Since:</strong>
+                            <span id="profileJoined">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>About:</strong>
+                            <span id="profileAbout">Loading...</span>
+                        </div>
+                        <div class="detail-item">
+                            <strong>Skills:</strong>
+                            <span id="profileSkills">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="spinner" style="display: none;">
+        <div class="spinner-circle"></div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentUser = null;
+        let products = [];
+        let isEditMode = false;
+
+        // Check if user is already logged in
+        window.onload = function() {
+            loadProfile();
+        };
+
+        // Authentication Functions
+        async function login(event) {
+            event.preventDefault();
+            showLoading();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    showApp();
+                    showToast('Login successful!', 'success');
+                    loadDashboard();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Login failed. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function signup(event) {
+            event.preventDefault();
+            showLoading();
+            
+            const firstName = document.getElementById('signupFirstName').value;
+            const lastName = document.getElementById('signupLastName').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const response = await fetch('/api/auth/signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName, lastName, email, password })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Account created successfully! Please login.', 'success');
+                    switchToLogin();
+                    // Clear signup form
+                    document.getElementById('signupFirstName').value = '';
+                    document.getElementById('signupLastName').value = '';
+                    document.getElementById('signupEmail').value = '';
+                    document.getElementById('signupPassword').value = '';
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Signup failed. Please try again.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function logout() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = null;
+                    products = [];
+                    showAuth();
+                    showToast('Logged out successfully!', 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Logout failed.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Profile Functions
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/users/profile');
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data.user;
+                    showApp();
+                    updateProfileDisplay();
+                    loadDashboard();
+                } else {
+                    showAuth();
+                }
+            } catch (error) {
+                showAuth();
+            }
+        }
+
+        function updateProfileDisplay() {
+            if (!currentUser) return;
+            
+            document.getElementById('profileImage').src = currentUser.photoURL;
+            document.getElementById('profileName').textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+            document.getElementById('profileEmail').textContent = currentUser.email;
+            document.getElementById('profileRole').textContent = currentUser.role.toUpperCase();
+            document.getElementById('profileJoined').textContent = new Date(currentUser.createdAt).toLocaleDateString();
+            document.getElementById('profileAbout').textContent = currentUser.about || 'No description available';
+            document.getElementById('profileSkills').textContent = currentUser.skills?.join(', ') || 'No skills listed';
+        }
+
+        // Product Functions
+        async function loadProducts() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/products');
+                const data = await response.json();
+                
+                if (data.success) {
+                    products = data.products;
+                    displayProducts();
+                    updateDashboardStats();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Failed to load products.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayProducts() {
+            const productsList = document.getElementById('productsList');
+            
+            if (products.length === 0) {
+                productsList.innerHTML = '<div class="empty-state"><i class="fas fa-box"></i><p>No products found. Create your first product!</p></div>';
+                return;
+            }
+
+            productsList.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-header">
+                        <h3>${product.name}</h3>
+                        <span class="product-price">$${product.price.toFixed(2)}</span>
+                    </div>
+                    <div class="product-category">${product.category}</div>
+                    <p class="product-description">${product.description}</p>
+                    <div class="product-meta">
+                        <small>Created: ${new Date(product.createdAt).toLocaleDateString()}</small>
+                        <small>By: ${product.createdBy?.firstName || 'Unknown'} ${product.createdBy?.lastName || ''}</small>
+                    </div>
+                    ${product.createdBy?._id === currentUser.id ? `
+                        <div class="product-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="editProduct('${product._id}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product._id}', '${product.name}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function saveProduct(event) {
+            event.preventDefault();
+            showLoading();
+            
+            const productId = document.getElementById('productId').value;
+            const name = document.getElementById('productName').value;
+            const category = document.getElementById('productCategory').value;
+            const description = document.getElementById('productDescription').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+
+            const productData = { name, category, description, price };
+            
+            try {
+                const url = isEditMode ? `/api/products/${productId}` : '/api/products';
+                const method = isEditMode ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(productData)
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast(`Product ${isEditMode ? 'updated' : 'created'} successfully!`, 'success');
+                    hideProductForm();
+                    loadProducts();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast(`Failed to ${isEditMode ? 'update' : 'create'} product.`, 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function deleteProduct(productId, productName) {
+            if (!confirm(`Are you sure you want to delete "${productName}"?`)) return;
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`/api/products/${productId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Product deleted successfully!', 'success');
+                    loadProducts();
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (error) {
+                showToast('Failed to delete product.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function editProduct(productId) {
+            const product = products.find(p => p._id === productId);
+            if (!product) return;
+
+            isEditMode = true;
+            document.getElementById('formTitle').textContent = 'Edit Product';
+            document.getElementById('productId').value = product._id;
+            document.getElementById('productName').value = product.name;
+            document.getElementById('productCategory').value = product.category;
+            document.getElementById('productDescription').value = product.description;
+            document.getElementById('productPrice').value = product.price;
+            
+            showAddProductForm();
+        }
+
+        function showAddProductForm() {
+            if (!isEditMode) {
+                document.getElementById('formTitle').textContent = 'Add New Product';
+                document.getElementById('productId').value = '';
+                document.getElementById('productName').value = '';
+                document.getElementById('productCategory').value = '';
+                document.getElementById('productDescription').value = '';
+                document.getElementById('productPrice').value = '';
+            }
+            
+            document.getElementById('productForm').style.display = 'block';
+        }
+
+        function hideProductForm() {
+            document.getElementById('productForm').style.display = 'none';
+            isEditMode = false;
+        }
+
+        // Dashboard Functions
+        function loadDashboard() {
+            loadProducts();
+        }
+
+        function updateDashboardStats() {
+            const totalProducts = products.length;
+            const thisMonth = products.filter(p => {
+                const productDate = new Date(p.createdAt);
+                const now = new Date();
+                return productDate.getMonth() === now.getMonth() && productDate.getFullYear() === now.getFullYear();
+            }).length;
+            const totalValue = products.reduce((sum, p) => sum + p.price, 0);
+
+            document.getElementById('totalProducts').textContent = totalProducts;
+            document.getElementById('recentProducts').textContent = thisMonth;
+            document.getElementById('totalValue').textContent = `$${totalValue.toFixed(2)}`;
+
+            // Show recent products
+            const recentProducts = products.slice(0, 3);
+            const recentList = document.getElementById('recentProductsList');
+            
+            if (recentProducts.length === 0) {
+                recentList.innerHTML = '<p>No products yet.</p>';
+            } else {
+                recentList.innerHTML = recentProducts.map(product => `
+                    <div class="recent-product-item">
+                        <h4>${product.name}</h4>
+                        <p>${product.category} - $${product.price.toFixed(2)}</p>
+                        <small>${new Date(product.createdAt).toLocaleDateString()}</small>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // UI Functions
+        function showAuth() {
+            document.getElementById('authSection').style.display = 'flex';
+            document.getElementById('appSection').style.display = 'none';
+            document.getElementById('navbar').style.display = 'none';
+        }
+
+        function showApp() {
+            document.getElementById('authSection').style.display = 'none';
+            document.getElementById('appSection').style.display = 'block';
+            document.getElementById('navbar').style.display = 'flex';
+        }
+
+        function switchToLogin() {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signupForm').style.display = 'none';
+        }
+
+        function switchToSignup() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('signupForm').style.display = 'block';
+        }
+
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active class from nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName).classList.add('active');
+            document.getElementById(sectionName + 'Link').classList.add('active');
+            
+            // Load section data
+            if (sectionName === 'products') {
+                loadProducts();
+            } else if (sectionName === 'dashboard') {
+                loadDashboard();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingSpinner').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+    </script>
 </body>
 </html>
