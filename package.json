@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "🚀 Product Management - Crud Operation API",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -21,5 +21,13 @@
     "mongoose": "^8.18.1",
     "nodemon": "^3.1.10",
     "validator": "^13.15.15"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API/issues"
+  },
+  "homepage": "https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API#readme"
 }
