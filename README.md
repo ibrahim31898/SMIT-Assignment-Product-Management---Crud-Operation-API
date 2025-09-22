@@ -1,212 +1,330 @@
-🚀 Product Management - Crud Operation API
+💻 Product Management System:
 
+A complete backend system for product management with secure authentication, user profile management, and full CRUD operations. The system features comprehensive user activity logging and a modern web interface.
+🚀 Features
 
-A clear and concise description of what your project does and why it exists.
-(Example: A RESTful API for managing tasks with authentication, built using Node.js, Express, and MongoDB.)
+Secure Authentication: JWT-based authentication with bcrypt password hashing
+User Management: Complete user profile system with role-based access
+Product CRUD: Full Create, Read, Update, Delete operations for products
+Activity Logging: Comprehensive logging of all user interactions
+Modern UI: Responsive web interface with glassmorphism design
+Input Validation: Schema-based validation using Joi
+Security: HTTP-only cookies, password strength validation
 
-📖 Table of Contents
+🛠️ Technology Stack
 
-Project Description
+Backend: Node.js, Express.js
+Database: MongoDB with Mongoose ODM
+Authentication: JSON Web Tokens (JWT), bcrypt
+Validation: Joi schema validation
+Frontend: Vanilla HTML, CSS, JavaScript
+Styling: Modern CSS with glassmorphism effects
 
-Tech Stack
+📋 Prerequisites
+Before running this application, make sure you have the following installed:
 
-Setup Instructions
+Node.js (v14.0.0 or higher)
+npm (v6.0.0 or higher)
+MongoDB (local installation or MongoDB Atlas account)
 
-Environment Variables
+🔧 Installation & Setup
+1. Clone the Repository
+bashgit clone <repository-url>
+cd product-management-system
+2. Install Dependencies
+bashnpm install
+3. Environment Configuration
+Create a .env file in the root directory and configure the following variables:
+bash# Copy from .env.example
+cp .env.example .env
+Edit the .env file with your configurations:
+bash# Database Configuration
+MONGO_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/productmanagement
 
-API Documentation
+# JWT Configuration
+JWT_SECRET=your-super-secret-jwt-key-here-make-it-long-and-random
 
-Example Requests
-
-License
-
-📌 Project Description
-
-This project provides a backend API for managing resources securely. It includes authentication using JWT, database persistence with MongoDB, and clean RESTful API design.
-
-Key features:
-
-🔐 User authentication & authorization (JWT-based)
-
-📂 CRUD operations for resources
-
-⚡ Scalable and modular architecture
-
-🛠 Tech Stack
-
-Node.js (Runtime)
-
-Express.js (Web framework)
-
-MongoDB + Mongoose (Database & ORM)
-
-JWT (Authentication)
-
-⚙️ Setup Instructions
-1. Clone the repository
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
-
-2. Install dependencies
-npm install
-
-3. Setup environment variables
-
-Create a .env file in the root directory. Use .env.example as reference.
-
-4. Run the project
-# Development
-npm run dev
-
-# Production
-npm start
-
-
-The server will start at: http://localhost:5000 (default)
-
-🔑 Environment Variables
-
-The following environment variables must be set in a .env file:
-
-Variable	Description	Example Value
-PORT	Port number for the server	5000
-MONGO_URI	MongoDB connection string	mongodb://localhost:27017/mydb
-JWT_SECRET	Secret key for signing JWT tokens	supersecretkey123
-NODE_ENV	Environment (development/production)	development
-📄 .env.example
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/mydb
-JWT_SECRET=supersecretkey123
+# Server Configuration
+PORT=3000
 NODE_ENV=development
+4. MongoDB Setup
+Option A: MongoDB Atlas (Recommended)
 
-📡 API Documentation
-Authentication
-🔹 Register User
+Create a free account at MongoDB Atlas
+Create a new cluster
+Get your connection string and update MONGO_URI in .env
 
-URL: /api/auth/register
+Option B: Local MongoDB
 
-Method: POST
+Install MongoDB locally
+Start MongoDB service
+Update MONGO_URI to: mongodb://localhost:27017/productmanagement
 
+5. Start the Application
+Development Mode
+bashnpm run dev
+Production Mode
+bashnpm start
+The application will be available at http://localhost:3000
+📚 API Documentation
+Authentication Endpoints
+POST /api/auth/signup
+Register a new user account.
 Request Body:
-
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "mypassword123"
+json{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!",
+  "role": "user"
 }
-
-
-Success Response:
-
-{
+Response:
+json{
   "success": true,
-  "message": "User registered successfully"
-}
-
-
-Error Response:
-
-{
-  "success": false,
-  "message": "Email already exists"
-}
-
-🔹 Login User
-
-URL: /api/auth/login
-
-Method: POST
-
-Request Body:
-
-{
-  "email": "john@example.com",
-  "password": "mypassword123"
-}
-
-
-Success Response:
-
-{
-  "success": true,
-  "token": "jwt_token_here"
-}
-
-
-Error Response:
-
-{
-  "success": false,
-  "message": "Invalid credentials"
-}
-
-Protected Routes (Require JWT in Authorization: Bearer <token>)
-🔹 Get All Items
-
-URL: /api/items
-
-Method: GET
-
-Success Response:
-
-[
-  {
-    "_id": "64a3b5c12e9d1a7c12345",
-    "name": "Sample Item",
-    "createdAt": "2025-09-22T10:00:00.000Z"
-  }
-]
-
-🔹 Create Item
-
-URL: /api/items
-
-Method: POST
-
-Request Body:
-
-{
-  "name": "New Item"
-}
-
-
-Success Response:
-
-{
-  "success": true,
+  "message": "User registered successfully",
   "data": {
-    "_id": "64a3b5c12e9d1a7c54321",
-    "name": "New Item"
+    "id": "userId",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "role": "user"
   }
 }
-
-🔹 Delete Item
-
-URL: /api/items/:id
-
-Method: DELETE
-
-Success Response:
-
-{
-  "success": true,
-  "message": "Item deleted"
+POST /api/auth/login
+Authenticate user and create session.
+Request Body:
+json{
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!"
 }
+Response:
+json{
+  "success": true,
+  "message": "Login successful",
+  "user": {
+    "id": "userId",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "role": "user"
+  }
+}
+POST /api/auth/logout
+Logout user and clear session.
+Response:
+json{
+  "success": true,
+  "message": "Logout successful"
+}
+User Profile Endpoint
+GET /api/users/profile
+Get current user's profile information (Protected).
+Response:
+json{
+  "success": true,
+  "user": {
+    "id": "userId",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "role": "user",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "about": "User description",
+    "skills": ["JavaScript", "Node.js"]
+  }
+}
+Product Endpoints
+POST /api/products
+Create a new product (Protected).
+Request Body:
+json{
+  "name": "Sample Product",
+  "description": "This is a sample product description",
+  "price": 99.99,
+  "category": "Electronics"
+}
+Response:
+json{
+  "success": true,
+  "message": "Product created successfully",
+  "product": {
+    "id": "productId",
+    "name": "Sample Product",
+    "description": "This is a sample product description",
+    "price": 99.99,
+    "category": "Electronics",
+    "createdBy": "userId",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+}
+GET /api/products
+Get all products (Protected).
+Response:
+json{
+  "success": true,
+  "count": 1,
+  "products": [
+    {
+      "id": "productId",
+      "name": "Sample Product",
+      "description": "Product description",
+      "price": 99.99,
+      "category": "Electronics",
+      "createdBy": {
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john.doe@example.com"
+      },
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+PUT /api/products/:id
+Update a product (Protected - Only product owner).
+Request Body: Same as POST /api/products
+Response:
+json{
+  "success": true,
+  "message": "Product updated successfully",
+  "product": { /* updated product data */ }
+}
+DELETE /api/products/:id
+Delete a product (Protected - Only product owner).
+Response:
+json{
+  "success": true,
+  "message": "Product deleted successfully"
+}
+🔐 Error Responses
+All endpoints return consistent error responses:
+json{
+  "success": false,
+  "message": "Error description",
+  "error": "Detailed error message"
+}
+Common HTTP status codes:
 
-📌 Example Requests
+400 - Bad Request (validation errors)
+401 - Unauthorized (authentication required)
+403 - Forbidden (insufficient permissions)
+404 - Not Found (resource doesn't exist)
+500 - Internal Server Error
 
-Using cURL:
+📊 Activity Logging
+The system automatically logs the following user activities:
 
-# Register
-curl -X POST http://localhost:5000/api/auth/register \
-   -H "Content-Type: application/json" \
-   -d '{"name":"John Doe","email":"john@example.com","password":"mypassword123"}'
+User signup and login
+Profile access
+Product creation, updates, and deletions
+Product list access
 
-# Login
-curl -X POST http://localhost:5000/api/auth/login \
-   -H "Content-Type: application/json" \
-   -d '{"email":"john@example.com","password":"mypassword123"}'
+Logs include:
 
-# Get Items (Authenticated)
-curl -X GET http://localhost:5000/api/items \
-   -H "Authorization: Bearer <jwt_token>"
+User ID and timestamp
+Action type and details
+IP address (optional)
+User agent (optional)
+
+🔒 Security Features
+
+Password Security: bcrypt hashing with salt rounds
+JWT Authentication: Secure token-based authentication
+HTTP-only Cookies: Prevents XSS attacks
+Input Validation: Joi schema validation
+Password Strength: Enforced strong password requirements
+CORS Protection: Cross-origin request protection
+
+🎨 Frontend Features
+
+Modern Design: Glassmorphism UI with gradient backgrounds
+Responsive Layout: Mobile-first responsive design
+Real-time Updates: Dynamic content updates
+Toast Notifications: User feedback system
+Form Validation: Client-side input validation
+Loading States: User experience enhancements
+
+📁 Project Structure
+product-management-system/
+├── app.js                 # Main application file
+├── config/
+│   └── database.js        # Database configuration
+├── middleware/
+│   └── user.js           # Authentication middleware
+├── model/
+│   ├── user.js           # User model
+│   ├── product.js        # Product model
+│   └── activityLog.js    # Activity logging model
+├── index.html            # Frontend HTML
+├── style.css             # Frontend styling
+├── package.json          # Dependencies
+├── .env.example          # Environment variables template
+└── README.md            # This file
+🚀 Deployment
+Heroku Deployment
+
+Create a Heroku account and install Heroku CLI
+Create a new Heroku app: heroku create your-app-name
+Set environment variables: heroku config:set JWT_SECRET=your-secret
+Deploy: git push heroku main
+
+Vercel Deployment
+
+Install Vercel CLI: npm i -g vercel
+Run: vercel
+Follow the prompts to deploy
+
+Environment Variables for Production
+
+Set NODE_ENV=production
+Use strong, unique JWT_SECRET
+Configure production MongoDB connection
+
+🤝 Contributing
+
+Fork the repository
+Create a feature branch: git checkout -b feature-name
+Commit changes: git commit -m 'Add feature'
+Push to branch: git push origin feature-name
+Submit a pull request
+
+📝 License
+This project is licensed under the MIT License - see the LICENSE file for details.
+🐛 Troubleshooting
+Common Issues
+
+MongoDB Connection Error
+
+Check your MongoDB URI in .env
+Ensure MongoDB service is running
+Verify network access for MongoDB Atlas
+
+
+JWT Token Issues
+
+Clear browser cookies
+Check if JWT_SECRET is set in .env
+Ensure token hasn't expired
+
+
+Port Already in Use
+
+Change PORT in .env file
+Kill process using the port: lsof -ti:3000 | xargs kill
+
+
+
+Getting Help
+
+Check the Issues section
+Review the error logs in the console
+Ensure all dependencies are installed: npm install
+
+📞 Support
+For support and questions:
+
+Create an issue in this repository
+Review the documentation above
+Check the troubleshooting section
+
+
+Happy Coding! 🎉
