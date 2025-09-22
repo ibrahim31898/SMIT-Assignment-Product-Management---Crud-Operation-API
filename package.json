@@ -29,5 +29,6 @@
   "bugs": {
     "url": "https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API/issues"
   },
-  "homepage": "https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API#readme"
+  "homepage": "https://github.com/ibrahim31898/SMIT-Assignment-Product-Management---Crud-Operation-API#readme",
+  "devDependencies": {}
 }
